@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Bravellian.InfraMonitor</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.SqlClient" />
+    <PackageReference Include="Postmark" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Bravellian.InfraMonitor.Metrics.AspNetCore\Bravellian.InfraMonitor.Metrics.AspNetCore.csproj" />
+    <ProjectReference Include="..\Bravellian.InfraMonitor.Metrics.Ui\Bravellian.InfraMonitor.Metrics.Ui.csproj" />
+  </ItemGroup>
+
+</Project>

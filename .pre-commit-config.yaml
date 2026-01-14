@@ -1,0 +1,56 @@
+default_language_version:
+  python: python3
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        files: "(?i)\\.(md|markdown|mdx|ya?ml|json|ps1|sh|cmd|bat|csproj|slnx?|props|targets|config|editorconfig|txt)$"
+        exclude: "^src/.+\\.(json|md)$"
+      - id: end-of-file-fixer
+        files: "(?i)\\.(md|markdown|mdx|ya?ml|json|ps1|sh|cmd|bat|csproj|slnx?|props|targets|config|editorconfig|txt)$"
+        exclude: "^src/.+\\.(json|md)$"
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=5120"]
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+        files: "(?i)\\.(cs|csproj|sln|slnx|props|targets|md|markdown|mdx|ya?ml|json|ps1|sh|cmd|bat|config|editorconfig|txt)$"
+      - id: check-xml
+
+
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        name: detect-secrets (manual)
+        stages: [manual]
+        args: ["--baseline", ".secrets.baseline"]
+
+  - repo: local
+    hooks:
+      - id: dotnet-format-apply
+        name: dotnet format (whitespace+style+analyzers)
+        language: system
+        entry: dotnet format infra-monitor.slnx
+        pass_filenames: false
+        stages: [manual]
+      - id: dotnet-format-verify
+        name: dotnet format (verify)
+        language: system
+        entry: dotnet format infra-monitor.slnx --verify-no-changes
+        files: "(?i)\\.(cs|csproj|sln|slnx|props|targets)$"
+        pass_filenames: false
+      - id: dotnet-build
+        name: dotnet build
+        language: system
+        entry: dotnet build infra-monitor.slnx
+        stages: [manual]
+        files: "(?i)\\.(cs|csproj|sln|slnx|props|targets)$"
+        pass_filenames: false

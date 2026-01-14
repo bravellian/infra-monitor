@@ -1,0 +1,309 @@
+@page
+@using System.Text.Json
+@model Bravellian.InfraMonitor.Pages.SqlServer.IndexModel
+
+@{
+    ViewData["Title"] = "SQL Server Report";
+}
+
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <h1 class="mb-1">SQL Server Report</h1>
+            @if (Model.HasStoredConnection)
+            {
+                <span class="badge text-bg-success">Connection saved</span>
+            }
+            else
+            {
+                <span class="badge text-bg-secondary">Connection not set</span>
+            }
+        </div>
+        <p class="text-muted mb-0">High-level server health, waits, and heavy queries.</p>
+    </div>
+    <form method="post">
+        <button type="submit" class="btn btn-outline-primary">Refresh snapshot</button>
+    </form>
+</div>
+
+<div class="alert alert-info">
+    <strong>Permissions required:</strong> <code>VIEW SERVER STATE</code> and <code>VIEW DATABASE STATE</code>.
+</div>
+
+@if (!Model.HasStoredConnection)
+{
+    <div class="alert alert-warning d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+        <div>
+            <strong>SQL connection required.</strong>
+            <div>Add a SQL Server connection string on the setup page to view reports.</div>
+        </div>
+        <a class="btn btn-warning" asp-page="/Setup">Go to setup</a>
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+    @if (Model.ShowErrorDetail && !string.IsNullOrWhiteSpace(Model.ErrorDetail))
+    {
+        <details class="mb-4">
+            <summary>Connection error details</summary>
+            <pre class="mt-2">@Model.ErrorDetail</pre>
+        </details>
+    }
+}
+
+@if (Model.Overview is not null)
+{
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-lg-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Server Summary</h5>
+                    <div class="small text-muted">Captured @Model.Overview.CapturedAt.ToLocalTime().ToString("g")</div>
+                    <dl class="mt-3 mb-0">
+                        <dt class="fw-semibold">Server</dt>
+                        <dd class="mb-2">@Model.Overview.ServerName</dd>
+                        <dt class="fw-semibold">Machine</dt>
+                        <dd class="mb-2">@Model.Overview.MachineName</dd>
+                        <dt class="fw-semibold">Edition</dt>
+                        <dd class="mb-2">@Model.Overview.Edition</dd>
+                        <dt class="fw-semibold">Version</dt>
+                        <dd class="mb-2">@Model.Overview.ProductVersion (@Model.Overview.ProductLevel)</dd>
+                        <dt class="fw-semibold">Uptime</dt>
+                        <dd class="mb-0">@((Model.Overview.StartTime is null) ? "Unknown" : (DateTimeOffset.UtcNow - Model.Overview.StartTime.Value).ToString("d\\d\\ h\\h\\ m\\m"))</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-8">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Top Waits (ms)</h5>
+                    <canvas id="waitsChart" height="130"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-lg-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Largest Databases</h5>
+                    <canvas id="dbSizeChart" height="130"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Database Drilldowns</h5>
+                    <p class="text-muted">Open a database to review table, index, and query details.</p>
+                    <div class="list-group">
+                        @foreach (var db in Model.Overview.DatabaseNames)
+                        {
+                            <a class="list-group-item list-group-item-action" asp-page="/SqlServer/Database" asp-route-name="@db">@db</a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-lg-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Snapshot Status</h5>
+                    <dl class="mb-0">
+                        <dt class="fw-semibold">Storage Mode</dt>
+                        <dd class="mb-2">@Model.StorageMode</dd>
+                        <dt class="fw-semibold">Last Snapshot</dt>
+                        <dd class="mb-0">@((Model.LastSnapshotAt is null) ? "None yet" : Model.LastSnapshotAt.Value.ToLocalTime().ToString("g"))</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-8">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Total Database Size (MB) Over Time</h5>
+                    <canvas id="dbSizeHistoryChart" height="130"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-lg-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Top Queries by CPU</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle js-data-table">
+                            <thead>
+                                <tr>
+                                    <th>Database</th>
+                                    <th>CPU (ms)</th>
+                                    <th>Execs</th>
+                                    <th>Avg CPU</th>
+                                    <th>Query</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var query in Model.Overview.TopQueriesByCpu)
+                                {
+                                    <tr>
+                                        <td>@query.DatabaseName</td>
+                                        <td>@query.TotalCpuMs.ToString("N0")</td>
+                                        <td>@query.ExecutionCount.ToString("N0")</td>
+                                        <td>@query.AvgCpuMs.ToString("N1")</td>
+                                        <td class="text-truncate" style="max-width: 320px;" title="@query.QueryText" data-bs-toggle="tooltip" data-bs-placement="top">
+                                            @query.QueryText
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Top Queries by Reads</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle js-data-table">
+                            <thead>
+                                <tr>
+                                    <th>Database</th>
+                                    <th>Reads</th>
+                                    <th>Execs</th>
+                                    <th>Avg Reads</th>
+                                    <th>Query</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var query in Model.Overview.TopQueriesByReads)
+                                {
+                                    <tr>
+                                        <td>@query.DatabaseName</td>
+                                        <td>@query.TotalReads.ToString("N0")</td>
+                                        <td>@query.ExecutionCount.ToString("N0")</td>
+                                        <td>@query.AvgReads.ToString("N1")</td>
+                                        <td class="text-truncate" style="max-width: 320px;" title="@query.QueryText" data-bs-toggle="tooltip" data-bs-placement="top">
+                                            @query.QueryText
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @section Styles
+    {
+        <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" />
+    }
+
+    @section Scripts
+    {
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+        <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+        <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+        <script>
+            const waitLabels = @Html.Raw(JsonSerializer.Serialize(Model.Overview.TopWaits.Select(x => x.WaitType)));
+            const waitValues = @Html.Raw(JsonSerializer.Serialize(Model.Overview.TopWaits.Select(x => x.WaitMs)));
+            const dbLabels = @Html.Raw(JsonSerializer.Serialize(Model.Overview.TopDatabases.Select(x => x.Name)));
+            const dbValues = @Html.Raw(JsonSerializer.Serialize(Model.Overview.TopDatabases.Select(x => x.SizeMb)));
+            const historyLabels = @Html.Raw(JsonSerializer.Serialize(Model.SizeHistory.Select(x => x.CapturedAt.ToLocalTime().ToString("MM-dd HH:mm"))));
+            const historyValues = @Html.Raw(JsonSerializer.Serialize(Model.SizeHistory.Select(x => x.Value)));
+
+            new Chart(document.getElementById("waitsChart"), {
+                type: "bar",
+                data: {
+                    labels: waitLabels,
+                    datasets: [{
+                        label: "Wait time (ms)",
+                        data: waitValues,
+                        backgroundColor: "rgba(235, 87, 87, 0.6)"
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+
+            new Chart(document.getElementById("dbSizeChart"), {
+                type: "bar",
+                data: {
+                    labels: dbLabels,
+                    datasets: [{
+                        label: "Size (MB)",
+                        data: dbValues,
+                        backgroundColor: "rgba(47, 111, 237, 0.6)"
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+
+            const historyCanvas = document.getElementById("dbSizeHistoryChart");
+            if (historyCanvas && historyValues.length > 0) {
+                new Chart(historyCanvas, {
+                    type: "line",
+                    data: {
+                        labels: historyLabels,
+                        datasets: [{
+                            label: "Total size (MB)",
+                            data: historyValues,
+                            borderColor: "#16a085",
+                            backgroundColor: "rgba(22, 160, 133, 0.15)",
+                            fill: true,
+                            tension: 0.3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: { beginAtZero: true }
+                        }
+                    }
+                });
+            }
+
+            $(document).ready(function () {
+                const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                tooltipTriggerList.forEach((tooltipTriggerEl) => {
+                    new bootstrap.Tooltip(tooltipTriggerEl);
+                });
+
+                $(".js-data-table").DataTable({
+                    pageLength: 10,
+                    order: []
+                });
+            });
+        </script>
+    }
+}

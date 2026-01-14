@@ -1,0 +1,224 @@
+@page
+@model Bravellian.InfraMonitor.Pages.SetupModel
+
+@{
+    ViewData["Title"] = "Setup";
+}
+
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+    <div>
+        <h1 class="mb-1">Setup</h1>
+        <p class="text-muted mb-0">Manage service tokens and connections for reporting.</p>
+    </div>
+</div>
+
+@if (Model.StorageMode == Bravellian.InfraMonitor.Services.Setup.SetupStorageMode.Server)
+{
+    <div class="alert alert-info">
+        <strong>Storage mode:</strong> Server. Values saved here are shared by anyone using this site.
+    </div>
+}
+else
+{
+    <div class="alert alert-secondary">
+        <strong>Storage mode:</strong> Browser-only. Values are stored in protected cookies on this device.
+    </div>
+}
+
+@if (TempData["SetupSaved"] is string message)
+{
+    <div class="alert alert-success">@message</div>
+}
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Postmark</h5>
+        <form method="post" asp-page-handler="Postmark" class="row g-3 align-items-end">
+            <div class="col-12 col-lg-6">
+                <label class="form-label" asp-for="PostmarkToken">Server Token</label>
+                <input asp-for="PostmarkToken" type="password" class="form-control" autocomplete="off" />
+                <span asp-validation-for="PostmarkToken" class="text-danger"></span>
+                <div class="form-text">
+                    @if (Model.StorageMode == Bravellian.InfraMonitor.Services.Setup.SetupStorageMode.Server)
+                    {
+                        <text>Stored on the server with data protection.</text>
+                    }
+                    else
+                    {
+                        <text>Stored in a protected cookie on this device.</text>
+                    }
+                </div>
+            </div>
+            <div class="col-12 col-lg-3 d-grid">
+                <button type="submit" class="btn btn-primary">Save token</button>
+            </div>
+        </form>
+
+        @if (Model.HasSavedPostmarkToken)
+        {
+            <form method="post" asp-page-handler="PostmarkClear" class="mt-3">
+                <button type="submit" class="btn btn-outline-secondary">Clear saved token</button>
+            </form>
+        }
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h5 class="card-title">SQL Server</h5>
+        <form method="post" asp-page-handler="Sql" class="row g-3 align-items-end">
+            <div class="col-12 col-lg-8">
+                <label class="form-label" asp-for="SqlConnectionString">Connection String</label>
+                <input asp-for="SqlConnectionString" type="password" class="form-control" autocomplete="off" />
+                <span asp-validation-for="SqlConnectionString" class="text-danger"></span>
+                <div class="form-text">
+                    @if (Model.StorageMode == Bravellian.InfraMonitor.Services.Setup.SetupStorageMode.Server)
+                    {
+                        <text>Stored on the server with data protection.</text>
+                    }
+                    else
+                    {
+                        <text>Stored in a protected cookie on this device.</text>
+                    }
+                </div>
+            </div>
+            <div class="col-12 col-lg-3 d-grid">
+                <button type="submit" class="btn btn-primary">Save connection</button>
+            </div>
+        </form>
+
+        @if (Model.HasSavedSqlConnection)
+        {
+            <form method="post" asp-page-handler="SqlClear" class="mt-3">
+                <button type="submit" class="btn btn-outline-secondary">Clear saved connection</button>
+            </form>
+        }
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Metrics Endpoints</h5>
+        <p class="text-muted mb-4">
+            Register Prometheus scrape endpoints for each service and instance you want to review.
+        </p>
+        <form method="post" asp-page-handler="MetricsAdd" class="row g-3 align-items-end">
+            <div class="col-12 col-lg-3">
+                <label class="form-label" asp-for="MetricsServiceName">Service name</label>
+                <input asp-for="MetricsServiceName" class="form-control" />
+                <span asp-validation-for="MetricsServiceName" class="text-danger"></span>
+            </div>
+            <div class="col-12 col-lg-3">
+                <label class="form-label" asp-for="MetricsInstanceName">Instance name</label>
+                <input asp-for="MetricsInstanceName" class="form-control" />
+                <span asp-validation-for="MetricsInstanceName" class="text-danger"></span>
+            </div>
+            <div class="col-12 col-lg-4">
+                <label class="form-label" asp-for="MetricsEndpointUrl">Endpoint URL</label>
+                <input asp-for="MetricsEndpointUrl" class="form-control" placeholder="https://service.example.com/metrics" />
+                <span asp-validation-for="MetricsEndpointUrl" class="text-danger"></span>
+                <div class="form-text">
+                    @if (Model.StorageMode == Bravellian.InfraMonitor.Services.Setup.SetupStorageMode.Server)
+                    {
+                        <text>Stored on the server with data protection.</text>
+                    }
+                    else
+                    {
+                        <text>Stored in a protected cookie on this device.</text>
+                    }
+                </div>
+            </div>
+            <div class="col-12 col-lg-2 d-grid">
+                <button type="submit" class="btn btn-primary">Add endpoint</button>
+            </div>
+        </form>
+
+        <form method="post" asp-page-handler="MetricsRefresh" class="row g-3 align-items-end mt-4">
+            <div class="col-12 col-lg-4">
+                <label class="form-label" asp-for="MetricsRefreshSeconds">Auto refresh seconds</label>
+                <input asp-for="MetricsRefreshSeconds" type="number" min="0" max="300" class="form-control" />
+                <span asp-validation-for="MetricsRefreshSeconds" class="text-danger"></span>
+                <div class="form-text">
+                    Current: @Model.CurrentMetricsRefreshSeconds s. Use 0 to disable. Recommended 5-300 seconds.
+                </div>
+            </div>
+            <div class="col-12 col-lg-3 d-grid">
+                <button type="submit" class="btn btn-outline-primary">Save refresh</button>
+            </div>
+        </form>
+
+        <form method="post" asp-page-handler="MetricsRefreshClear" class="row g-3 mt-2">
+            <div class="col-12 col-lg-3 d-grid">
+                <button type="submit" class="btn btn-outline-secondary">Reset to default</button>
+            </div>
+        </form>
+
+        <form method="post" asp-page-handler="MetricsPinned" class="row g-3 align-items-end mt-4">
+            <div class="col-12 col-lg-8">
+                <label class="form-label" asp-for="MetricsPinnedInput">Pinned metrics</label>
+                <textarea asp-for="MetricsPinnedInput" class="form-control" rows="4" placeholder="process.cpu.time&#10;http.server.request.duration_count"></textarea>
+                <span asp-validation-for="MetricsPinnedInput" class="text-danger"></span>
+                <div class="form-text">
+                    Enter one metric name per line. These metrics will be charted across all services.
+                </div>
+            </div>
+            <div class="col-12 col-lg-2 d-grid">
+                <button type="submit" class="btn btn-outline-primary">Save pinned</button>
+            </div>
+        </form>
+
+        <form method="post" asp-page-handler="MetricsPinnedClear" class="row g-3 mt-2">
+            <div class="col-12 col-lg-3 d-grid">
+                <button type="submit" class="btn btn-outline-secondary">Clear pinned</button>
+            </div>
+        </form>
+
+        @if (Model.MetricsEndpoints.Count > 0)
+        {
+            <div class="table-responsive mt-4">
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>Service</th>
+                            <th>Instance</th>
+                            <th>Endpoint</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var i = 0; i < Model.MetricsEndpoints.Count; i++)
+                        {
+                            var endpoint = Model.MetricsEndpoints[i];
+                            <tr>
+                                <td>@endpoint.ServiceName</td>
+                                <td>@endpoint.InstanceName</td>
+                                <td class="text-muted">@endpoint.EndpointUrl</td>
+                                <td class="text-end">
+                                    <form method="post" asp-page-handler="MetricsRemove">
+                                        <input type="hidden" name="index" value="@i" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <form method="post" asp-page-handler="MetricsClear" class="mt-3">
+                <button type="submit" class="btn btn-outline-secondary">Clear all endpoints</button>
+            </form>
+        }
+        else
+        {
+            <div class="alert alert-secondary mt-4 mb-0">
+                No endpoints registered yet.
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+}

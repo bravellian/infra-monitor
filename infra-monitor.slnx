@@ -1,0 +1,39 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/samples/">
+    <Project Path="samples/Bravellian.InfraMonitor.Metrics.Ui.Sample/Bravellian.InfraMonitor.Metrics.Ui.Sample.csproj" />
+  </Folder>
+  <Folder Name="/_src/">
+    <File Path=".editorconfig" />
+    <File Path=".gitattributes" />
+    <File Path=".gitignore" />
+    <File Path=".pre-commit-config.yaml" />
+    <File Path=".secrets.baseline" />
+    <File Path="AGENTS.md" />
+    <File Path="cleanup.ps1" />
+    <File Path="cleanup.sh" />
+    <File Path="common.props" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Build.targets" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
+    <File Path="metadata.props" />
+    <File Path="non-tests.props" />
+    <File Path="postmark.llms.txt" />
+    <File Path="SECURITY.md" />
+    <File Path="strongvalidation.props" />
+    <File Path="stylecop.json" />
+    <File Path="tests.props" />
+  </Folder>
+  <Folder Name="/src/">
+      <Project Path="src/Bravellian.InfraMonitor.Metrics.AspNetCore/Bravellian.InfraMonitor.Metrics.AspNetCore.csproj" />
+      <Project Path="src/Bravellian.InfraMonitor.Metrics.HttpServer/Bravellian.InfraMonitor.Metrics.HttpServer.csproj" />
+      <Project Path="src/Bravellian.InfraMonitor.Metrics.Ui/Bravellian.InfraMonitor.Metrics.Ui.csproj" />
+      <Project Path="src/Bravellian.InfraMonitor.Metrics/Bravellian.InfraMonitor.Metrics.csproj" />
+      <Project Path="src/Bravellian.InfraMonitor/Bravellian.InfraMonitor.csproj" />
+    </Folder>
+</Solution>

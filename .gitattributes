@@ -1,0 +1,95 @@
+###############################################################################
+# Core normalization
+###############################################################################
+* text=auto eol=lf
+
+# Windows-only scripts
+*.bat text eol=lf
+*.cmd text eol=lf
+
+# Solution and project files
+*.sln text eol=lf
+*.slnx text eol=lf
+*.csproj text eol=lf
+*.vbproj text eol=lf
+*.fsproj text eol=lf
+*.vcxproj text eol=lf
+*.props text eol=lf
+*.targets text eol=lf
+*.ruleset text eol=lf
+*.editorconfig text eol=lf
+
+###############################################################################
+# Diff drivers
+###############################################################################
+*.cs diff=csharp
+*.csx diff=csharp
+*.cshtml diff=html
+*.razor diff=html
+
+###############################################################################
+# Merge drivers (avoid conflict markers in MSBuild XML)
+###############################################################################
+*.sln merge=union
+*.csproj merge=union
+*.vbproj merge=union
+*.fsproj merge=union
+*.vcxproj merge=union
+*.props merge=union
+*.targets merge=union
+*.resx merge=union
+*.config merge=union
+*.ruleset merge=union
+
+###############################################################################
+# Binary files
+###############################################################################
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+*.pdf binary
+*.zip binary
+*.7z binary
+*.tar binary
+*.gz binary
+*.nupkg binary
+*.snupkg binary
+*.dll binary
+*.exe binary
+*.pdb binary
+*.snk binary
+*.pfx binary
+*.cer binary
+
+###############################################################################
+# Linguist: generated or vendored output
+###############################################################################
+**/bin/** linguist-generated
+**/obj/** linguist-generated
+artifacts/** linguist-generated
+dist/** linguist-generated
+**/*.g.cs linguist-generated
+**/*.g.i.cs linguist-generated
+**/*.generated.cs linguist-generated
+**/*.Designer.cs linguist-generated
+**/*.AssemblyInfo.cs linguist-generated
+**/*.AssemblyAttributes.cs linguist-generated
+**/*.min.js linguist-generated
+
+packages/** linguist-vendored
+node_modules/** linguist-vendored
+vendor/** linguist-vendored
+
+###############################################################################
+# Linguist: documentation and language hints
+###############################################################################
+docs/** linguist-documentation
+*.cshtml linguist-language=Razor
+*.razor linguist-language=Razor
+*.props linguist-language=XML
+*.targets linguist-language=XML
+*.nuspec linguist-language=XML
+*.sql linguist-detectable=true

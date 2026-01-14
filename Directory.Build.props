@@ -1,0 +1,27 @@
+<Project>
+  <!--
+    This file is the single entry point for all projects. It determines the project type
+    and imports the appropriate properties file.
+  -->
+
+  <!-- Define conditions as properties for clarity -->
+  <PropertyGroup>
+    <IsTestProject>false</IsTestProject>
+    <IsTestProject Condition="$([System.String]::Copy('$(MSBuildProjectName)').EndsWith('Tests'))">true</IsTestProject>
+  </PropertyGroup>
+
+  <!-- Import metadata for all C# projects first -->
+  <Import Project="metadata.props" Condition="'$(MSBuildProjectExtension)' == '.csproj'" />
+
+  <!--
+    Import the right props file based on the project type.
+    The conditions are evaluated in order.
+  -->
+
+  <!-- Condition for all other C# projects (excluding SQL projects and Analyzers/Generators) -->
+  <Import Project="common.props" Condition="'$(MSBuildProjectExtension)' == '.csproj'" />
+  <Import Project="tests.props" Condition="'$(MSBuildProjectExtension)' == '.csproj' AND '$(IsTestProject)' == 'true'" />
+  <Import Project="non-tests.props" Condition="'$(MSBuildProjectExtension)' == '.csproj' AND '$(IsTestProject)' == 'false'" />
+  <Import Project="strongvalidation.props" Condition="'$(MSBuildProjectExtension)' == '.csproj'" />
+
+</Project>

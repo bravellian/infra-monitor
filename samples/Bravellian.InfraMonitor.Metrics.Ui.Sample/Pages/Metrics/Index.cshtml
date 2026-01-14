@@ -1,0 +1,122 @@
+@page "/metrics-report"
+@model Bravellian.InfraMonitor.Metrics.Ui.Sample.Pages.Metrics.IndexModel
+@{
+    ViewData["Title"] = "Metrics";
+}
+
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+    <div>
+        <h1 class="mb-1">Metrics</h1>
+        <p class="text-muted mb-0">Live Prometheus metrics scraped from configured service endpoints.</p>
+    </div>
+</div>
+
+<div id="metricsContent">
+    @await Html.PartialAsync("_MetricsContent", Model)
+</div>
+
+@section Scripts
+{
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        const autoRefreshSeconds = @Model.AutoRefreshSeconds;
+        let metricChartInstances = [];
+
+        function initializeMetricsPage() {
+            metricChartInstances.forEach(chart => chart.destroy());
+            metricChartInstances = [];
+
+            const dataElement = document.getElementById("metrics-charts-data");
+            const charts = dataElement ? JSON.parse(dataElement.textContent || "[]") : [];
+
+            charts.forEach(chart => {
+                const canvas = document.getElementById(chart.id);
+                if (!canvas) {
+                    return;
+                }
+
+                const instance = new Chart(canvas, {
+                    type: "line",
+                    data: {
+                        labels: chart.labels,
+                        datasets: [{
+                            label: chart.title,
+                            data: chart.values,
+                            borderColor: "rgba(25, 135, 84, 0.9)",
+                            backgroundColor: "rgba(25, 135, 84, 0.15)",
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            x: {
+                                ticks: { maxTicksLimit: 6 }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    }
+                });
+
+                metricChartInstances.push(instance);
+            });
+
+            document.querySelectorAll(".pinned-filter").forEach(input => {
+                input.addEventListener("input", () => {
+                    const filter = input.value.toLowerCase().trim();
+                    const container = input.closest(".service-block");
+                    if (!container) {
+                        return;
+                    }
+
+                    container.querySelectorAll(".pinned-metric-item").forEach(item => {
+                        const name = (item.getAttribute("data-metric-name") || "").toLowerCase();
+                        item.style.display = filter.length === 0 || name.includes(filter) ? "" : "none";
+                    });
+                });
+            });
+
+            const refreshButton = document.getElementById("metricsRefreshNow");
+            if (refreshButton) {
+                refreshButton.addEventListener("click", () => refreshMetricsContent());
+            }
+        }
+
+        async function refreshMetricsContent() {
+            try {
+                const response = await fetch(`${window.location.pathname}?handler=Refresh`);
+                if (!response.ok) {
+                    scheduleRefresh();
+                    return;
+                }
+
+                const html = await response.text();
+                const container = document.getElementById("metricsContent");
+                if (!container) {
+                    scheduleRefresh();
+                    return;
+                }
+
+                container.innerHTML = html;
+                initializeMetricsPage();
+            } catch {
+                // Ignore refresh errors.
+            } finally {
+                scheduleRefresh();
+            }
+        }
+
+        function scheduleRefresh() {
+            if (autoRefreshSeconds > 0) {
+                setTimeout(refreshMetricsContent, autoRefreshSeconds * 1000);
+            }
+        }
+
+        initializeMetricsPage();
+        scheduleRefresh();
+    </script>
+}

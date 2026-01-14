@@ -1,0 +1,156 @@
+@page
+@using System.Text.Json
+@model Bravellian.InfraMonitor.Pages.Postmark.ReportModel
+
+@{
+    ViewData["Title"] = "Postmark Report";
+}
+
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <h1 class="mb-1">Postmark Report</h1>
+            @if (Model.HasStoredToken)
+            {
+                <span class="badge text-bg-success">Token saved</span>
+            }
+            else
+            {
+                <span class="badge text-bg-secondary">Token not set</span>
+            }
+        </div>
+        <p class="text-muted mb-0">Outbound email volume and top recipients over a custom range.</p>
+    </div>
+</div>
+
+@if (!Model.HasStoredToken)
+{
+    <div class="alert alert-warning d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+        <div>
+            <strong>Postmark token required.</strong>
+            <div>Add your server token on the setup page before generating reports.</div>
+        </div>
+        <a class="btn btn-warning" asp-page="/Setup">Go to setup</a>
+    </div>
+}
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form method="post" class="row g-3 align-items-end">
+            <div class="col-6 col-lg-3">
+                <label class="form-label" asp-for="From">From</label>
+                <input asp-for="From" type="date" class="form-control" />
+            </div>
+            <div class="col-6 col-lg-3">
+                <label class="form-label" asp-for="To">To</label>
+                <input asp-for="To" type="date" class="form-control" />
+            </div>
+            <div class="col-12 col-lg-3 d-grid">
+                <button type="submit" class="btn btn-primary">Generate</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+@if (Model.HasResults && Model.Report is not null)
+{
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-lg-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Summary</h5>
+                    <p class="display-6 mb-1">@Model.Report.TotalMessages</p>
+                    <p class="text-muted mb-3">Outbound messages in range</p>
+                    <div class="small text-muted">Top recipients shown in the chart are limited to 20.</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-8">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Daily Volume</h5>
+                    <canvas id="dailyTotalsChart" height="120"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Top Recipients by Day</h5>
+            <canvas id="topRecipientsChart" height="140"></canvas>
+        </div>
+    </div>
+
+    @section Scripts
+    {
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+        <script>
+            const dateLabels = @Html.Raw(JsonSerializer.Serialize(Model.Report.DateLabels));
+            const dailyTotals = @Html.Raw(JsonSerializer.Serialize(Model.Report.DailyTotals));
+            const topRecipients = @Html.Raw(JsonSerializer.Serialize(Model.Report.TopRecipients));
+            const recipientDailyCounts = @Html.Raw(JsonSerializer.Serialize(Model.Report.RecipientDailyCounts));
+
+            const dailyTotalsChart = new Chart(document.getElementById("dailyTotalsChart"), {
+                type: "line",
+                data: {
+                    labels: dateLabels,
+                    datasets: [{
+                        label: "Messages",
+                        data: dailyTotals,
+                        borderColor: "#2f6fed",
+                        backgroundColor: "rgba(47, 111, 237, 0.15)",
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+
+            const palette = topRecipients.map((_, index) => {
+                const hue = Math.round((index * 360) / Math.max(1, topRecipients.length));
+                return `hsl(${hue}, 65%, 52%)`;
+            });
+
+            const recipientDatasets = topRecipients.map((recipient, index) => ({
+                label: recipient,
+                data: recipientDailyCounts[index],
+                backgroundColor: palette[index],
+                borderWidth: 0
+            }));
+
+            const topRecipientsChart = new Chart(document.getElementById("topRecipientsChart"), {
+                type: "bar",
+                data: {
+                    labels: dateLabels,
+                    datasets: recipientDatasets
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: "bottom"
+                        }
+                    },
+                    scales: {
+                        x: { stacked: true },
+                        y: { stacked: true, beginAtZero: true }
+                    }
+                }
+            });
+        </script>
+    }
+}

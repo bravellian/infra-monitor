@@ -1,0 +1,30 @@
+<Project>
+  <!--
+    This file contains metadata common to ALL .csproj files in the solution,
+    including regular projects, test projects, and analyzer projects.
+  -->
+  <PropertyGroup>
+    <Company>Bravellian</Company>
+    <Authors>Bravellian</Authors>
+    <Copyright>© Bravellian. All rights reserved.</Copyright>
+    <InformationalVersion Condition="'$(InformationalVersion)' == ''">$(Version)</InformationalVersion>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRelease>true</PublishRelease>
+    <PackageIcon>nuget_logo.png</PackageIcon>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)artifacts</PackageOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)assets/nuget_logo.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Common source link and reproducible builds packages -->
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
+    <PackageReference Include="DotNet.ReproducibleBuilds.Isolated" PrivateAssets="All" />
+  </ItemGroup>
+
+</Project>
