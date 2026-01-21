@@ -40,7 +40,7 @@ jobs:
         run: dotnet build infra-monitor.slnx --no-restore --configuration Release -warnaserror -p:ContinuousIntegrationBuild=true
 
       - name: Test
-        run: dotnet test infra-monitor.slnx --no-build --configuration Release
+        run: dotnet test --solution infra-monitor.slnx --no-build --configuration Release
 
       - name: Pack (repro 1)
         shell: bash

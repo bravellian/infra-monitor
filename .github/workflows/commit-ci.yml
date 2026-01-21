@@ -70,7 +70,7 @@ jobs:
       run: dotnet build infra-monitor.slnx --no-restore --configuration Release -p:Version=${{ steps.git_version.outputs.semVer }}
 
     - name: Run Tests
-      run: dotnet test infra-monitor.slnx --no-build --configuration Release
+      run: dotnet test --solution infra-monitor.slnx --no-build --configuration Release
 
     - name: Pack NuGet packages
       run: dotnet pack infra-monitor.slnx --configuration Release --output ./nupkgs -p:PackageVersion=${{ steps.git_version.outputs.semVer }}
