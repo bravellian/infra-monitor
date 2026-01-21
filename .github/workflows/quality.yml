@@ -33,6 +33,23 @@ jobs:
       - name: Restore
         run: dotnet restore infra-monitor.slnx
 
+      - name: Detect test projects
+        id: test_projects
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find . -name "*.csproj" -print0 | xargs -0 grep -l "<IsTestProject>true</IsTestProject>" >/dev/null 2>&1; then
+            echo "has_tests=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if find . -name "*Tests.csproj" -o -name "*Test.csproj" | grep -q .; then
+            echo "has_tests=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "has_tests=false" >> "$GITHUB_OUTPUT"
+
       - name: Verify formatting and analyzers
         run: dotnet format --verify-no-changes infra-monitor.slnx
 
@@ -40,6 +57,7 @@ jobs:
         run: dotnet build infra-monitor.slnx --no-restore --configuration Release -warnaserror -p:ContinuousIntegrationBuild=true
 
       - name: Test
+        if: steps.test_projects.outputs.has_tests == 'true'
         run: dotnet test --solution infra-monitor.slnx --no-build --configuration Release
 
       - name: Pack (repro 1)
