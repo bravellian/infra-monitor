@@ -4,8 +4,16 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Bravellian.InfraMonitor.Metrics.Ui;
 
+/// <summary>
+/// Service registration helpers for the metrics UI.
+/// </summary>
 public static class MetricsUiServiceCollectionExtensions
 {
+    /// <summary>
+    /// Adds Razor Pages and services required for the metrics UI.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <returns>The MVC builder.</returns>
     public static IMvcBuilder AddBravellianMetricsUi(this IServiceCollection services)
     {
         var builder = services.AddRazorPages()

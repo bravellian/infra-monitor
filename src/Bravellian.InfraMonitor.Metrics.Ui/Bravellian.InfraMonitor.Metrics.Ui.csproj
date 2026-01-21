@@ -4,6 +4,11 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>true</IsPackable>
+    <Description>Razor Pages UI for visualizing Prometheus-style metrics in Bravellian Infra Monitor.</Description>
+    <PackageTags>metrics;prometheus;aspnetcore;ui;razorpages</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,6 +18,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Bravellian.InfraMonitor.Metrics\Bravellian.InfraMonitor.Metrics.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>

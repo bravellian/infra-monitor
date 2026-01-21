@@ -14,6 +14,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Bravellian.InfraMonitor.Metrics.Ui.Pages.Metrics;
 
+/// <summary>
+/// Metrics dashboard page model that aggregates scrape data for display.
+/// </summary>
 public class IndexModel : PageModel
 {
     private const int SampleLimit = 200;
@@ -24,6 +27,14 @@ public class IndexModel : PageModel
     private readonly InfraMonitorAppMetrics appMetrics;
     private readonly ILogger<IndexModel> logger;
 
+    /// <summary>
+    /// Initializes the page model with required services.
+    /// </summary>
+    /// <param name="setupStore">The setup store for user configuration.</param>
+    /// <param name="scrapeService">The metrics scraping service.</param>
+    /// <param name="historyStore">The metrics history store.</param>
+    /// <param name="appMetrics">The application metrics recorder.</param>
+    /// <param name="logger">The logger instance.</param>
     public IndexModel(
         IMetricsSetupStore setupStore,
         MetricsScrapeService scrapeService,
@@ -38,17 +49,45 @@ public class IndexModel : PageModel
         this.logger = logger;
     }
 
+    /// <summary>
+    /// Gets the auto-refresh interval in seconds.
+    /// </summary>
     public int AutoRefreshSeconds { get; private set; } = DefaultRefreshSeconds;
+
+    /// <summary>
+    /// Gets a value indicating whether any endpoints are configured.
+    /// </summary>
     public bool HasEndpoints { get; private set; }
+
+    /// <summary>
+    /// Gets the number of configured endpoints.
+    /// </summary>
     public int EndpointCount { get; private set; }
+
+    /// <summary>
+    /// Gets the list of pinned metric names.
+    /// </summary>
     public IReadOnlyList<string> PinnedMetrics { get; private set; } = Array.Empty<string>();
+
+    /// <summary>
+    /// Gets the services to render on the dashboard.
+    /// </summary>
     public IReadOnlyList<MetricsServiceViewModel> Services { get; private set; } = Array.Empty<MetricsServiceViewModel>();
 
+    /// <summary>
+    /// Handles the initial page load.
+    /// </summary>
+    /// <param name="cancellationToken">The cancellation token.</param>
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
         await LoadAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Handles a partial refresh request for the metrics content.
+    /// </summary>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The partial view result.</returns>
     public async Task<IActionResult> OnGetRefreshAsync(CancellationToken cancellationToken)
     {
         await LoadAsync(cancellationToken).ConfigureAwait(false);
@@ -59,12 +98,21 @@ public class IndexModel : PageModel
         };
     }
 
+    /// <summary>
+    /// Records a demo email metric and redirects back to the page.
+    /// </summary>
+    /// <returns>The redirect result.</returns>
     public IActionResult OnPostDemoEmail()
     {
         appMetrics.RecordDemoEmail();
         return RedirectToPage();
     }
 
+    /// <summary>
+    /// Pins a metric name for dashboard display.
+    /// </summary>
+    /// <param name="metricName">The metric name to pin.</param>
+    /// <returns>The redirect result.</returns>
     public IActionResult OnPostPinMetric(string? metricName)
     {
         if (string.IsNullOrWhiteSpace(metricName))
@@ -88,6 +136,11 @@ public class IndexModel : PageModel
         return RedirectToPage();
     }
 
+    /// <summary>
+    /// Removes a pinned metric name.
+    /// </summary>
+    /// <param name="metricName">The metric name to unpin.</param>
+    /// <returns>The redirect result.</returns>
     public IActionResult OnPostUnpinMetric(string? metricName)
     {
         if (string.IsNullOrWhiteSpace(metricName))
@@ -713,11 +766,32 @@ public class IndexModel : PageModel
     ];
 }
 
+/// <summary>
+/// Represents a service and its aggregated metrics data.
+/// </summary>
+/// <param name="ServiceName">The logical service name.</param>
+/// <param name="Aggregate">The aggregate view model.</param>
+/// <param name="Instances">The instance view models.</param>
 public sealed record MetricsServiceViewModel(
     string ServiceName,
     MetricsAggregateViewModel Aggregate,
     IReadOnlyList<MetricsInstanceViewModel> Instances);
 
+/// <summary>
+/// Represents aggregate metrics across all instances for a service.
+/// </summary>
+/// <param name="DashboardCards">The dashboard cards for fixed metrics.</param>
+/// <param name="DashboardCharts">The dashboard charts for fixed metrics.</param>
+/// <param name="PinnedCards">The dashboard cards for pinned metrics.</param>
+/// <param name="PinnedCharts">The dashboard charts for pinned metrics.</param>
+/// <param name="SeriesSummaries">The metric series summaries.</param>
+/// <param name="Samples">The aggregated sample list.</param>
+/// <param name="TotalSamples">The total sample count.</param>
+/// <param name="InstanceCount">The number of instances in the aggregate.</param>
+/// <param name="SuccessfulInstances">The count of successful scrapes.</param>
+/// <param name="FailedInstances">The count of failed scrapes.</param>
+/// <param name="AverageScrapeDurationMs">The average scrape duration in milliseconds.</param>
+/// <param name="LatestScrape">The latest scrape timestamp.</param>
 public sealed record MetricsAggregateViewModel(
     IReadOnlyList<DashboardMetricCardViewModel> DashboardCards,
     IReadOnlyList<DashboardChartViewModel> DashboardCharts,
@@ -732,6 +806,18 @@ public sealed record MetricsAggregateViewModel(
     double AverageScrapeDurationMs,
     DateTimeOffset? LatestScrape);
 
+/// <summary>
+/// Represents metrics data for a single service instance.
+/// </summary>
+/// <param name="Registration">The endpoint registration.</param>
+/// <param name="Snapshot">The scrape snapshot if available.</param>
+/// <param name="Error">The scrape error message.</param>
+/// <param name="Duration">The scrape duration.</param>
+/// <param name="DashboardCards">The dashboard cards.</param>
+/// <param name="DashboardCharts">The dashboard charts.</param>
+/// <param name="SeriesSummaries">The metric series summaries.</param>
+/// <param name="Samples">The sample list.</param>
+/// <param name="TotalSamples">The total sample count.</param>
 public sealed record MetricsInstanceViewModel(
     MetricsEndpointRegistration Registration,
     PrometheusScrapeSnapshot? Snapshot,
@@ -743,12 +829,27 @@ public sealed record MetricsInstanceViewModel(
     IReadOnlyList<MetricSampleViewModel> Samples,
     int TotalSamples);
 
+/// <summary>
+/// Summarizes the number of series for a metric name.
+/// </summary>
+/// <param name="Name">The metric name.</param>
+/// <param name="Type">The metric type.</param>
+/// <param name="Help">The help text.</param>
+/// <param name="SeriesCount">The number of series.</param>
 public sealed record MetricSeriesSummaryViewModel(
     string Name,
     string? Type,
     string? Help,
     int SeriesCount);
 
+/// <summary>
+/// Represents a display sample for a metric.
+/// </summary>
+/// <param name="Name">The metric name.</param>
+/// <param name="Labels">The formatted labels.</param>
+/// <param name="Value">The formatted value.</param>
+/// <param name="Type">The metric type.</param>
+/// <param name="Help">The help text.</param>
 public sealed record MetricSampleViewModel(
     string Name,
     string Labels,
@@ -756,12 +857,27 @@ public sealed record MetricSampleViewModel(
     string? Type,
     string? Help);
 
+/// <summary>
+/// Represents a metric card for the dashboard.
+/// </summary>
+/// <param name="Title">The card title.</param>
+/// <param name="Value">The metric value.</param>
+/// <param name="Unit">The metric unit.</param>
+/// <param name="Description">The metric description.</param>
 public sealed record DashboardMetricCardViewModel(
     string Title,
     string Value,
     string? Unit,
     string? Description);
 
+/// <summary>
+/// Represents a chart for a metric time series.
+/// </summary>
+/// <param name="Id">The chart element id.</param>
+/// <param name="Title">The chart title.</param>
+/// <param name="Unit">The unit of measure.</param>
+/// <param name="IsRate">Whether the series is a rate series.</param>
+/// <param name="Points">The chart data points.</param>
 public sealed record DashboardChartViewModel(
     string Id,
     string Title,
@@ -769,8 +885,22 @@ public sealed record DashboardChartViewModel(
     bool IsRate,
     IReadOnlyList<MetricChartPointViewModel> Points);
 
+/// <summary>
+/// Represents a point in a metric chart series.
+/// </summary>
+/// <param name="Timestamp">The point timestamp.</param>
+/// <param name="Value">The point value.</param>
 public sealed record MetricChartPointViewModel(DateTimeOffset Timestamp, double Value);
 
+/// <summary>
+/// Defines a dashboard metric and its display configuration.
+/// </summary>
+/// <param name="Key">The internal key used for tracking history.</param>
+/// <param name="Title">The display title.</param>
+/// <param name="Description">The description for the metric.</param>
+/// <param name="Unit">The unit of measure.</param>
+/// <param name="Kind">The metric value kind.</param>
+/// <param name="MetricNames">The underlying metric names to match.</param>
 public sealed record MetricDashboardDefinition(
     string Key,
     string Title,
@@ -779,6 +909,9 @@ public sealed record MetricDashboardDefinition(
     MetricValueKind Kind,
     params string[] MetricNames);
 
+/// <summary>
+/// Identifies whether a metric should be treated as a gauge or a counter.
+/// </summary>
 public enum MetricValueKind
 {
     Gauge,

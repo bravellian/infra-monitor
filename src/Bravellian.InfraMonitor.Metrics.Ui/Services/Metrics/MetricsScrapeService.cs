@@ -6,15 +6,28 @@ using Bravellian.InfraMonitor.Metrics.Ui.Models;
 
 namespace Bravellian.InfraMonitor.Metrics.Ui.Services.Metrics;
 
+/// <summary>
+/// Scrapes Prometheus endpoints and parses their responses.
+/// </summary>
 public sealed class MetricsScrapeService
 {
     private readonly HttpClient httpClient;
 
+    /// <summary>
+    /// Initializes the scraper with an HTTP client.
+    /// </summary>
+    /// <param name="httpClient">The HTTP client used to fetch metrics.</param>
     public MetricsScrapeService(HttpClient httpClient)
     {
         this.httpClient = httpClient;
     }
 
+    /// <summary>
+    /// Scrapes a registered endpoint and returns the parsed report.
+    /// </summary>
+    /// <param name="registration">The metrics endpoint registration.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The scrape report.</returns>
     public async Task<MetricsEndpointReport> ScrapeAsync(
         MetricsEndpointRegistration registration,
         CancellationToken cancellationToken)

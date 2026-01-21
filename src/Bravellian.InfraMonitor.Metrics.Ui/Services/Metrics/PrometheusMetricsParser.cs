@@ -5,8 +5,16 @@ using System.Text;
 
 namespace Bravellian.InfraMonitor.Metrics.Ui.Services.Metrics;
 
+/// <summary>
+/// Parses Prometheus text format into samples and metadata.
+/// </summary>
 public static class PrometheusMetricsParser
 {
+    /// <summary>
+    /// Parses a Prometheus payload into a structured snapshot.
+    /// </summary>
+    /// <param name="payload">The raw Prometheus scrape text.</param>
+    /// <returns>The parsed snapshot.</returns>
     public static PrometheusScrapeSnapshot Parse(string payload)
     {
         var samples = new List<PrometheusMetricSample>();
