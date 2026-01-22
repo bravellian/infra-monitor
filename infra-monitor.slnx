@@ -7,6 +7,9 @@
   <Folder Name="/samples/">
     <Project Path="samples/Bravellian.InfraMonitor.Metrics.Ui.Sample/Bravellian.InfraMonitor.Metrics.Ui.Sample.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Bravellian.InfraMonitor.Metrics.Tests/Bravellian.InfraMonitor.Metrics.Tests.csproj" />
+  </Folder>
   <Folder Name="/_src/">
     <File Path=".editorconfig" />
     <File Path=".gitattributes" />

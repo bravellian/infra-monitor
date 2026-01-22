@@ -6,3 +6,4 @@ Steps
 - Update `appsettings.json` with your own endpoint URL (for local runs, set it to the bound `http://localhost:{port}/metrics`).
 - Run the sample: `dotnet run --project samples/Bravellian.InfraMonitor.Metrics.Ui.Sample/Bravellian.InfraMonitor.Metrics.Ui.Sample.csproj`.
 - Navigate to `/metrics-report`.
+- The Prometheus scrape endpoint is available at `/metrics`.
