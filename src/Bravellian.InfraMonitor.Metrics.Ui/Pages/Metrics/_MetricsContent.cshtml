@@ -481,4 +481,4 @@ else
     var chartsJson = JsonSerializer.Serialize(charts);
 }
 
-<script type="application/json" id="metrics-charts-data" nonce="@(Context.Items["CspNonce"])">@chartsJson</script>
+<script type="application/json" id="metrics-charts-data" nonce="@(ViewContext.HttpContext.Items["CspNonce"])">@chartsJson</script>

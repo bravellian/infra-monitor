@@ -24,10 +24,10 @@
 
     @section Scripts
     {
-        <script src="~/lib/chart.js/chart.umd.min.js" asp-append-version="true" nonce="@(Context.Items["CspNonce"])"></script>
-        <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js" nonce="@(Context.Items["CspNonce"])"></script>
-        <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js" nonce="@(Context.Items["CspNonce"])"></script>
-        <script nonce="@(Context.Items["CspNonce"])">
+        <script src="~/lib/chart.js/chart.umd.min.js" asp-append-version="true" nonce="@(ViewContext.HttpContext.Items["CspNonce"])"></script>
+        <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js" nonce="@(ViewContext.HttpContext.Items["CspNonce"])"></script>
+        <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js" nonce="@(ViewContext.HttpContext.Items["CspNonce"])"></script>
+        <script nonce="@(ViewContext.HttpContext.Items["CspNonce"])">
             const waitLabels = @Html.Raw(JsonSerializer.Serialize(Model.Overview.TopWaits.Select(x => x.WaitType)));
             const waitValues = @Html.Raw(JsonSerializer.Serialize(Model.Overview.TopWaits.Select(x => x.WaitMs)));
             const dbLabels = @Html.Raw(JsonSerializer.Serialize(Model.Overview.TopDatabases.Select(x => x.Name)));
