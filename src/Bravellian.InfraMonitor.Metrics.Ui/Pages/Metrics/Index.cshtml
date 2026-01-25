@@ -17,7 +17,7 @@
 
 @section Scripts
 {
-    <script src="~/lib/chart.js/chart.umd.min.js" asp-append-version="true" nonce="@(ViewContext.HttpContext.Items["CspNonce"])"></script>
+    <script src="~/_content/Bravellian.InfraMonitor.Metrics.Ui/lib/chart.js/chart.umd.min.js" asp-append-version="true" nonce="@(ViewContext.HttpContext.Items["CspNonce"])"></script>
     <script nonce="@(ViewContext.HttpContext.Items["CspNonce"])">
         const autoRefreshSeconds = @Model.AutoRefreshSeconds;
         let metricChartInstances = [];
