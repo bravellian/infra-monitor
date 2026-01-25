@@ -17,8 +17,8 @@
 
 @section Scripts
 {
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <script>
+    <script src="~/lib/chart.js/chart.umd.min.js" asp-append-version="true" nonce="@(Context.Items["CspNonce"])"></script>
+    <script nonce="@(Context.Items["CspNonce"])">
         const autoRefreshSeconds = @Model.AutoRefreshSeconds;
         let metricChartInstances = [];
 

@@ -1,0 +1,228 @@
+@using Bravellian.InfraMonitor.Models
+@using Bravellian.InfraMonitor.Services.Setup
+@using Microsoft.AspNetCore.Components
+
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <h1 class="mb-1">SQL Server Report</h1>
+            @if (HasStoredConnection)
+            {
+                <span class="badge text-bg-success">Connection saved</span>
+            }
+            else
+            {
+                <span class="badge text-bg-secondary">Connection not set</span>
+            }
+        </div>
+        <p class="text-muted mb-0">High-level server health, waits, and heavy queries.</p>
+    </div>
+    <form method="post">
+        <button type="submit" class="btn btn-outline-primary">Refresh snapshot</button>
+    </form>
+</div>
+
+<div class="alert alert-info">
+    <strong>Permissions required:</strong> <code>VIEW SERVER STATE</code> and <code>VIEW DATABASE STATE</code>.
+</div>
+
+@if (!HasStoredConnection)
+{
+    <div class="alert alert-warning d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+        <div>
+            <strong>SQL connection required.</strong>
+            <div>Add a SQL Server connection string on the setup page to view reports.</div>
+        </div>
+        <a class="btn btn-warning" href="/Setup">Go to setup</a>
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(ErrorMessage))
+{
+    <div class="alert alert-danger">@ErrorMessage</div>
+    @if (ShowErrorDetail && !string.IsNullOrWhiteSpace(ErrorDetail))
+    {
+        <details class="mb-4">
+            <summary>Connection error details</summary>
+            <pre class="mt-2">@ErrorDetail</pre>
+        </details>
+    }
+}
+
+@if (Overview is not null)
+{
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-lg-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Server Summary</h5>
+                    <div class="small text-muted">Captured @Overview.CapturedAt.ToLocalTime().ToString("g")</div>
+                    <dl class="mt-3 mb-0">
+                        <dt class="fw-semibold">Server</dt>
+                        <dd class="mb-2">@Overview.ServerName</dd>
+                        <dt class="fw-semibold">Machine</dt>
+                        <dd class="mb-2">@Overview.MachineName</dd>
+                        <dt class="fw-semibold">Edition</dt>
+                        <dd class="mb-2">@Overview.Edition</dd>
+                        <dt class="fw-semibold">Version</dt>
+                        <dd class="mb-2">@Overview.ProductVersion (@Overview.ProductLevel)</dd>
+                        <dt class="fw-semibold">Uptime</dt>
+                        <dd class="mb-0">@((Overview.StartTime is null) ? "Unknown" : (DateTimeOffset.UtcNow - Overview.StartTime.Value).ToString("d\\d\\ h\\h\\ m\\m"))</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-8">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Top Waits (ms)</h5>
+                    <canvas id="waitsChart" height="130"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-lg-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Largest Databases</h5>
+                    <canvas id="dbSizeChart" height="130"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Database Drilldowns</h5>
+                    <p class="text-muted">Open a database to review table, index, and query details.</p>
+                    <div class="list-group">
+                        @foreach (var db in Overview.DatabaseNames)
+                        {
+                            <a class="list-group-item list-group-item-action" href="@($"/SqlServer/Database?name={Uri.EscapeDataString(db)}")">@db</a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-lg-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Snapshot Status</h5>
+                    <dl class="mb-0">
+                        <dt class="fw-semibold">Storage Mode</dt>
+                        <dd class="mb-2">@StorageMode</dd>
+                        <dt class="fw-semibold">Last Snapshot</dt>
+                        <dd class="mb-0">@((LastSnapshotAt is null) ? "None yet" : LastSnapshotAt.Value.ToLocalTime().ToString("g"))</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-8">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Total Database Size (MB) Over Time</h5>
+                    <canvas id="dbSizeHistoryChart" height="130"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-lg-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Top Queries by CPU</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle js-data-table">
+                            <thead>
+                                <tr>
+                                    <th>Database</th>
+                                    <th>CPU (ms)</th>
+                                    <th>Execs</th>
+                                    <th>Avg CPU</th>
+                                    <th>Query</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var query in Overview.TopQueriesByCpu)
+                                {
+                                    <tr>
+                                        <td>@query.DatabaseName</td>
+                                        <td>@query.TotalCpuMs.ToString("N0")</td>
+                                        <td>@query.ExecutionCount.ToString("N0")</td>
+                                        <td>@query.AvgCpuMs.ToString("N1")</td>
+                                        <td class="text-truncate" style="max-width: 320px;" title="@query.QueryText" data-bs-toggle="tooltip" data-bs-placement="top">
+                                            @query.QueryText
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Top Queries by Reads</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle js-data-table">
+                            <thead>
+                                <tr>
+                                    <th>Database</th>
+                                    <th>Reads</th>
+                                    <th>Execs</th>
+                                    <th>Avg Reads</th>
+                                    <th>Query</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var query in Overview.TopQueriesByReads)
+                                {
+                                    <tr>
+                                        <td>@query.DatabaseName</td>
+                                        <td>@query.TotalReads.ToString("N0")</td>
+                                        <td>@query.ExecutionCount.ToString("N0")</td>
+                                        <td>@query.AvgReads.ToString("N1")</td>
+                                        <td class="text-truncate" style="max-width: 320px;" title="@query.QueryText" data-bs-toggle="tooltip" data-bs-placement="top">
+                                            @query.QueryText
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code
+{
+    [Parameter]
+    public bool HasStoredConnection { get; set; }
+
+    [Parameter]
+    public SqlServerOverviewViewModel? Overview { get; set; }
+
+    [Parameter]
+    public string? ErrorMessage { get; set; }
+
+    [Parameter]
+    public string? ErrorDetail { get; set; }
+
+    [Parameter]
+    public bool ShowErrorDetail { get; set; }
+
+    [Parameter]
+    public SetupStorageMode StorageMode { get; set; }
+
+    [Parameter]
+    public DateTimeOffset? LastSnapshotAt { get; set; }
+}

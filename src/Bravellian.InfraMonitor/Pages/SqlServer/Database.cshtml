@@ -1,319 +1,23 @@
 @page
 @using System.Text.Json
 @model Bravellian.InfraMonitor.Pages.SqlServer.DatabaseModel
-
 @{
     ViewData["Title"] = "Database Report";
 }
 
-<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
-    <div>
-        <div class="d-flex align-items-center gap-2 flex-wrap">
-            <h1 class="mb-1">Database Report</h1>
-            @if (Model.HasStoredConnection)
-            {
-                <span class="badge text-bg-success">Connection saved</span>
-            }
-            else
-            {
-                <span class="badge text-bg-secondary">Connection not set</span>
-            }
-        </div>
-        <p class="text-muted mb-0">Table, index, and query hotspots for @Model.Name.</p>
-    </div>
-    <a class="btn btn-outline-primary" asp-page="/SqlServer/Index">Back to server overview</a>
-</div>
-
-<div class="alert alert-info">
-    <strong>Permissions required:</strong> <code>VIEW SERVER STATE</code> and <code>VIEW DATABASE STATE</code>.
-</div>
-
-@if (!Model.HasStoredConnection)
-{
-    <div class="alert alert-warning d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
-        <div>
-            <strong>SQL connection required.</strong>
-            <div>Add a SQL Server connection string on the setup page to view reports.</div>
-        </div>
-        <a class="btn btn-warning" asp-page="/Setup">Go to setup</a>
-    </div>
-}
-
-@if (string.IsNullOrWhiteSpace(Model.Name))
-{
-    <div class="alert alert-secondary">Choose a database from the server overview to see details.</div>
-}
-
-@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
-{
-    <div class="alert alert-danger">@Model.ErrorMessage</div>
-    @if (Model.ShowErrorDetail && !string.IsNullOrWhiteSpace(Model.ErrorDetail))
-    {
-        <details class="mb-4">
-            <summary>Connection error details</summary>
-            <pre class="mt-2">@Model.ErrorDetail</pre>
-        </details>
-    }
-}
+<component type="typeof(Bravellian.InfraMonitor.Components.SqlServer.SqlServerDatabaseBody)"
+           render-mode="Static"
+           param-HasStoredConnection="Model.HasStoredConnection"
+           param-Name="Model.Name"
+           param-DatabaseReport="Model.DatabaseReport"
+           param-ErrorMessage="Model.ErrorMessage"
+           param-ErrorDetail="Model.ErrorDetail"
+           param-ShowErrorDetail="Model.ShowErrorDetail"
+           param-StorageMode="Model.StorageMode"
+           param-LastSnapshotAt="Model.LastSnapshotAt" />
 
 @if (Model.DatabaseReport is not null)
 {
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                <div>
-                    <h5 class="card-title">@Model.DatabaseReport.DatabaseName</h5>
-                    <div class="small text-muted">Captured @Model.DatabaseReport.CapturedAt.ToLocalTime().ToString("g")</div>
-                </div>
-                <form method="get" class="d-flex gap-2 align-items-center">
-                    <input type="hidden" name="name" value="@Model.DatabaseReport.DatabaseName" />
-                    <button type="submit" class="btn btn-outline-primary">Refresh snapshot</button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <div class="row g-4 mb-4">
-        <div class="col-12 col-lg-4">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">Snapshot Status</h5>
-                    <dl class="mb-0">
-                        <dt class="fw-semibold">Storage Mode</dt>
-                        <dd class="mb-2">@Model.StorageMode</dd>
-                        <dt class="fw-semibold">Last Snapshot</dt>
-                        <dd class="mb-0">@((Model.LastSnapshotAt is null) ? "None yet" : Model.LastSnapshotAt.Value.ToLocalTime().ToString("g"))</dd>
-                    </dl>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-lg-8">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">Database Size (MB) Over Time</h5>
-                    <canvas id="dbSizeHistoryChart" height="130"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row g-4 mb-4">
-        <div class="col-12 col-lg-6">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">Largest Tables</h5>
-                    <canvas id="tableSizeChart" height="130"></canvas>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-lg-6">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">Largest Indexes</h5>
-                    <canvas id="indexSizeChart" height="130"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row g-4 mb-4">
-        <div class="col-12 col-xl-6">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">Top Queries by CPU</h5>
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle js-data-table">
-                            <thead>
-                                <tr>
-                                    <th>CPU (ms)</th>
-                                    <th>Execs</th>
-                                    <th>Avg CPU</th>
-                                    <th>Query</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var query in Model.DatabaseReport.TopQueriesByCpu)
-                                {
-                                    <tr>
-                                        <td>@query.TotalCpuMs.ToString("N0")</td>
-                                        <td>@query.ExecutionCount.ToString("N0")</td>
-                                        <td>@query.AvgCpuMs.ToString("N1")</td>
-                                        <td class="text-truncate" style="max-width: 320px;" title="@query.QueryText" data-bs-toggle="tooltip" data-bs-placement="top">
-                                            @query.QueryText
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-xl-6">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">Top Queries by Reads</h5>
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle js-data-table">
-                            <thead>
-                                <tr>
-                                    <th>Reads</th>
-                                    <th>Execs</th>
-                                    <th>Avg Reads</th>
-                                    <th>Query</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var query in Model.DatabaseReport.TopQueriesByReads)
-                                {
-                                    <tr>
-                                        <td>@query.TotalReads.ToString("N0")</td>
-                                        <td>@query.ExecutionCount.ToString("N0")</td>
-                                        <td>@query.AvgReads.ToString("N1")</td>
-                                        <td class="text-truncate" style="max-width: 320px;" title="@query.QueryText" data-bs-toggle="tooltip" data-bs-placement="top">
-                                            @query.QueryText
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row g-4 mb-4">
-        <div class="col-12 col-xl-6">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">Largest Tables (detail)</h5>
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle js-data-table">
-                            <thead>
-                                <tr>
-                                    <th>Table</th>
-                                    <th>Rows</th>
-                                    <th>Total MB</th>
-                                    <th>Data MB</th>
-                                    <th>Index MB</th>
-                                    <th>Avg Row KB</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var table in Model.DatabaseReport.TopTables)
-                                {
-                                    <tr>
-                                        <td>@table.SchemaName.@table.TableName</td>
-                                        <td>@table.RowCount.ToString("N0")</td>
-                                        <td>@table.TotalMb.ToString("N1")</td>
-                                        <td>@table.DataMb.ToString("N1")</td>
-                                        <td>@table.IndexMb.ToString("N1")</td>
-                                        <td>@table.AvgRowKb.ToString("N2")</td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-xl-6">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">Largest Indexes (detail)</h5>
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle js-data-table">
-                            <thead>
-                                <tr>
-                                    <th>Index</th>
-                                    <th>Type</th>
-                                    <th>Size MB</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var index in Model.DatabaseReport.TopIndexes)
-                                {
-                                    <tr>
-                                        <td>@index.SchemaName.@index.TableName (@index.IndexName)</td>
-                                        <td>@index.IndexType</td>
-                                        <td>@index.TotalMb.ToString("N1")</td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            <h5 class="card-title">Unused Indexes with Writes</h5>
-            <p class="text-muted">Indexes that receive updates but no seeks/scans/lookups since the last restart.</p>
-            <div class="table-responsive">
-                <table class="table table-sm align-middle js-data-table">
-                    <thead>
-                        <tr>
-                            <th>Index</th>
-                            <th>Updates</th>
-                            <th>Size MB</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var index in Model.DatabaseReport.UnusedIndexes)
-                        {
-                            <tr>
-                                <td>@index.SchemaName.@index.TableName (@index.IndexName)</td>
-                                <td>@index.UserUpdates.ToString("N0")</td>
-                                <td>@index.TotalMb.ToString("N1")</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            <h5 class="card-title">Missing Index Recommendations</h5>
-            <p class="text-muted">Based on query patterns since the last restart. Validate before creating indexes.</p>
-            <div class="table-responsive">
-                <table class="table table-sm align-middle js-data-table">
-                    <thead>
-                        <tr>
-                            <th>Table</th>
-                            <th>Equality</th>
-                            <th>Inequality</th>
-                            <th>Included</th>
-                            <th>Impact %</th>
-                            <th>Seeks</th>
-                            <th>Scans</th>
-                            <th>Avg Cost</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var index in Model.DatabaseReport.MissingIndexes)
-                        {
-                            <tr>
-                                <td>@index.TableName</td>
-                                <td>@index.EqualityColumns</td>
-                                <td>@index.InequalityColumns</td>
-                                <td>@index.IncludedColumns</td>
-                                <td>@index.AvgUserImpact.ToString("N1")</td>
-                                <td>@index.UserSeeks.ToString("N0")</td>
-                                <td>@index.UserScans.ToString("N0")</td>
-                                <td>@index.AvgTotalUserCost.ToString("N2")</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
     @section Styles
     {
         <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" />
@@ -321,10 +25,10 @@
 
     @section Scripts
     {
-        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-        <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
-        <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
-        <script>
+        <script src="~/lib/chart.js/chart.umd.min.js" asp-append-version="true" nonce="@(Context.Items["CspNonce"])"></script>
+        <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js" nonce="@(Context.Items["CspNonce"])"></script>
+        <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js" nonce="@(Context.Items["CspNonce"])"></script>
+        <script nonce="@(Context.Items["CspNonce"])">
             const tableLabels = @Html.Raw(JsonSerializer.Serialize(Model.DatabaseReport.TopTables.Select(x => $"{x.SchemaName}.{x.TableName}")));
             const tableValues = @Html.Raw(JsonSerializer.Serialize(Model.DatabaseReport.TopTables.Select(x => x.TotalMb)));
             const indexLabels = @Html.Raw(JsonSerializer.Serialize(Model.DatabaseReport.TopIndexes.Select(x => $"{x.SchemaName}.{x.TableName}")));
